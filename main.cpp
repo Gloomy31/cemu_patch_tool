@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
     static const char* module_name = argv[2];
     static const char* hook_addr = argv[3];
     static const char* output_filename = argv[4];
+    static const char* module_matches = argv[5];
     
     // Errors, info, and instructions for new users.
     if (argc < 3) {
@@ -61,7 +62,7 @@ int main(int argc, char** argv) {
     }
 
     fprintf(asm_out, "[%s]\n", module_name);
-    fprintf(asm_out, "moduleMatches = 0x6267bfd0\n.origin = codecave\n\n");
+    fprintf(asm_out, "moduleMatches = %s\n.origin = codecave\n\n", module_matches);
     fprintf(asm_out, "; Assembly auto-generated with Zig and filtered through Torph's Cemu patch tool.\n\n");
     
     /* The entry_point label saves all registers to the stack, calls the user's
@@ -142,6 +143,19 @@ int main(int argc, char** argv) {
     
             line.replace(label_pos + 1, label_length + ry_length, buffer);
             free(buffer);
+        }
+
+        // Cemu doesn't support bnllr and bnglr, so we're
+        // replacing them with  bgelr and blelr, respectively,
+        // since they do the same thing.
+        if (line.find("\tbnllr") == 0) {
+            // Replace "bnllr" with "bgelr"
+            line.replace(0, 6, "\tbgelr");
+        }
+
+        if (line.find("\tbnglr") == 0) {
+            // Replace "bnglr" with "blelr"
+            line.replace(0, 6, "\tblelr");
         }
     
         // Print to file
